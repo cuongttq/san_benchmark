@@ -43,7 +43,7 @@ with open(csv_filename, mode="a", newline="") as file:
     
     # Write header if file does not exist
     if not file_exists:
-        writer.writerow(["Test Name", "File Size", "Block Size", "IO Depth", "Read", "Write", "Read IOPS (K)", "Write IOPS (K)", "Read BW (MB/s)", "Write BW (MB/s)"])
+        writer.writerow(["Test Name", "File Size", "Block Size", "IO Depth", "Num Jobs", "Read", "Write", "Read IOPS (K)", "Write IOPS (K)", "Read BW (MB/s)", "Write BW (MB/s)"])
     
     # Run each FIO test case
     for test in fio_tests:
@@ -84,7 +84,7 @@ with open(csv_filename, mode="a", newline="") as file:
             write_percent = 100 - int(test["rwmixread"])
 
             # Write to CSV file
-            writer.writerow([test["name"], "1G", test["bs"], test["iodepth"], test["rwmixread"], write_percent, read_iops, write_iops, read_bw, write_bw])
+            writer.writerow([test["name"], "1G", test["bs"], test["iodepth"], test["numjobs"], test["rwmixread"], write_percent, read_iops, write_iops, read_bw, write_bw])
             print(f"Saved results for {test['name']} in {csv_filename}")
 
         except subprocess.CalledProcessError as e:
