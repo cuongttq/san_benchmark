@@ -1,5 +1,5 @@
 #!/bin/bash
-# sysbench_cpu_mem_gpu_file.sh
+# stress_cpu_mem_gpu_file.sh
 # Yêu cầu: sysbench, curl, nvidia-smi
 
 # ========================
@@ -7,11 +7,8 @@
 # ========================
 TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
 TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
-OUTPUT_FILE="benchmark_result.txt"
+OUTPUT_FILE="stress_result.txt"
 
-# ========================
-# Hàm gửi file lên Telegram
-# ========================
 send_telegram_file() {
     local file="$1"
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
@@ -20,25 +17,39 @@ send_telegram_file() {
 }
 
 # ========================
-# CPU Benchmark
+# Xác định 90% CPU threads
+# ========================
+CPU_CORES=$(nproc)
+CPU_THREADS=$((CPU_CORES * 90 / 100))
+[ "$CPU_THREADS" -lt 1 ] && CPU_THREADS=1
+
+# ========================
+# Xác định 90% memory
+# ========================
+TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+MEM_90_PERCENT_KB=$((TOTAL_MEM_KB * 90 / 100))
+MEM_90_MB=$((MEM_90_PERCENT_KB / 1024))
+
+# ========================
+# Stress CPU
 # ========================
 benchmark_cpu() {
-    echo "==== CPU Benchmark ====" >> "$OUTPUT_FILE"
-    sysbench cpu --cpu-max-prime=20000 run >> "$OUTPUT_FILE" 2>&1
+    echo "==== CPU Stress (~90%) ====" >> "$OUTPUT_FILE"
+    sysbench cpu --cpu-max-prime=20000 --threads=$CPU_THREADS run >> "$OUTPUT_FILE" 2>&1
     echo -e "\n" >> "$OUTPUT_FILE"
 }
 
 # ========================
-# Memory Benchmark
+# Stress Memory
 # ========================
 benchmark_memory() {
-    echo "==== Memory Benchmark ====" >> "$OUTPUT_FILE"
-    sysbench memory --memory-total-size=1G run >> "$OUTPUT_FILE" 2>&1
+    echo "==== Memory Stress (~90%) ====" >> "$OUTPUT_FILE"
+    sysbench memory --memory-total-size=${MEM_90_MB}M run >> "$OUTPUT_FILE" 2>&1
     echo -e "\n" >> "$OUTPUT_FILE"
 }
 
 # ========================
-# GPU Benchmark (NVIDIA)
+# GPU Info
 # ========================
 benchmark_gpu() {
     echo "==== GPU Info ====" >> "$OUTPUT_FILE"
@@ -53,13 +64,12 @@ benchmark_gpu() {
 # ========================
 # Main
 # ========================
-# Xoá file cũ nếu tồn tại
 [ -f "$OUTPUT_FILE" ] && rm "$OUTPUT_FILE"
 
 benchmark_cpu
 benchmark_memory
 benchmark_gpu
 
-echo "All benchmarks completed. Sending file to Telegram..."
+echo "Stress test completed. Sending file to Telegram..."
 send_telegram_file "$OUTPUT_FILE"
 echo "File sent."
